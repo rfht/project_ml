@@ -1,0 +1,120 @@
+---
+title: "project_ml"
+author: "Thomas Frohwein"
+date: "November 22, 2015"
+output: html_document
+---
+#project_ml: Applying machine learning for the creation of a prediction model for accuracy of the performance of weight lifting exercise
+
+##Introduction
+
+Activity tracking has so far mainly been used to monitor the amount of activity, but rarely the quality. This analysis tries to create a prediction model for quality of the performed exercises by applying machine learning on the a dataset.
+
+The dataset with the measurements from activity tracking devices (Jawbone, Nike FuelBand, Fitbit) which is underlying this analysis can be found on:
+
+http://groupware.les.inf.puc-rio.br/har
+
+The outcome measure, performance quality, is reflected in the variable "classe" in the dataset.
+
+##Obtaining the data and preparing it for training
+
+First let's load the libraries that will be required for the analysis:
+
+```{r}
+library(caret)
+library(randomForest)
+```
+
+Then we download the .csv file containing the raw dataset and load it into the variable "data."
+
+```{r}
+download.file(url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile="pml-training.csv")
+data <- read.csv("pml-training.csv")
+```
+
+As you can tell from the filename, this is already a partition from another dataset and was taken out as a training set. For cross-validation purposes, we will now divide this training set again in a training and a testing part.
+
+```{r}
+inTrain <- createDataPartition(y=data$classe, p=0.75, list=FALSE)
+training <- data[inTrain,]
+testing <- data[-inTrain,]
+```
+
+Now we need to further prepare the training set so that we can use it for the creation of the prediction model.
+
+We remove the rows with NA's from the analysis like this:
+
+```{r}
+na_var <- apply(!is.na(training),2,sum)
+na_var <- na_var == nrow(training)
+training <- training[, na_var]
+```
+
+Now, let's see what types of data we have in the training set.
+
+```{r}
+unique(sapply(training, class))
+```
+
+We see that there are integers, numerics, and factors. Let's reduce the set to the integers and numerics (this may exclude some useful variables, but ended up being the approach that helped me create a working prediction model.)
+
+```{r}
+training_numOrint <- training[,sapply(training, class) %in% c("integer", "numeric")]
+```
+
+And let's add the column for the quality of the exercise 'classe.'
+
+```{r}
+train_numInt_classe <- cbind(training_numOrint, training$classe)
+```
+
+If we take a look at the set that we have now, we see that there are several variables which will not be useful for the analysis. I decided to exclude them, including timestamp data, from the creation of the prediction model.
+
+```{r}
+head(train_numInt_classe)
+train_numInt_classe <- train_numInt_classe[,5:57]
+```
+
+## Creation of the prediction model
+
+Okay, now it's time to create the prediction model. I used the random forests algorithm on the training set.
+*Note:* Because of the amount of time it takes to compute the prediction model, the following code will not be run!
+
+```{r, eval=FALSE}
+modFit2 <- train(classe ~ ., method="rf", preProcess="pca", data=na.omit(train_numInt_classe))
+```
+
+We will now load the precompiled model from a file.
+
+```{r}
+modfit2 <- load("modFit2.RData")
+```
+
+## Cross Validation
+
+(... to be continued)
+
+## Conclusion
+
+A large dataset like the weightlifting dataset used here can be converted into a prediction model for quality of the exercise performance.
+
+
+
+
+
+---
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
